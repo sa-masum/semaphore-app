@@ -1,0 +1,2 @@
+mongodb+srv://masum:semaphoreapp@cluster0.vozty.mongodb.net/semaphore-app==>REDACTED
+kdnfksjdbzkncbjzhbcznjdzcdk==>REDACTED
