@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const customerSchema = new mongoose.Schema({
   createDate: {
     type: Date,
-    default: Date.now,
+    required: true,
   },
   branch: {
     type: String,
@@ -37,6 +37,7 @@ const customerSchema = new mongoose.Schema({
   },
   phone1: {
     type: String,
+    required: true,
     trim: true,
   },
   phone2: {
@@ -118,10 +119,27 @@ const customerSchema = new mongoose.Schema({
   },
   parentAccHead: {
     type: String,
-    enum: ['accountReceiveable', 'accountPayable'],
+    enum: ['accountReceiveable', 'accountPayable', ''],
+    default: '',
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
   },
 }, {
   timestamps: true,
+});
+
+// Add pre-save middleware to handle date conversions
+customerSchema.pre('save', function(next) {
+  if (this.createDate && typeof this.createDate === 'string') {
+    this.createDate = new Date(this.createDate);
+  }
+  if (this.birthDate && typeof this.birthDate === 'string') {
+    this.birthDate = new Date(this.birthDate);
+  }
+  next();
 });
 
 export const Customer = mongoose.model('Customer', customerSchema);

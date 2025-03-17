@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import { User } from './models/userSchema.js';
-
+import { Customer } from './models/customerSchema.js';
 
 console.log('MONGO_URI:', process.env.MONGO_URI);
 console.log('JWT_SECRET:', process.env.JWT_SECRET);
@@ -182,5 +182,101 @@ app.put('/api/v1/user/change-password', async (req, res) => {
     } catch (error) {
         console.error('Password change error:', error);
         res.status(400).json({ message: 'Failed to change password' });
+    }
+});
+
+app.get('/api/v1/user/customer-count', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const count = await Customer.countDocuments({ userId: decoded.userId });
+        
+        res.json({
+            success: true,
+            count: count
+        });
+    } catch (error) {
+        console.error('Customer count error:', error);
+        res.status(400).json({ message: 'Failed to get customer count' });
+    }
+});
+
+// Add customer
+app.post('/api/v1/customers/add', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Validate required fields
+        if (!req.body.name || !req.body.phone1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Name and primary phone are required'
+            });
+        }
+
+        // Clean up empty strings in optional fields
+        const customerData = Object.entries(req.body).reduce((acc, [key, value]) => {
+            if (value !== '') {
+                acc[key] = value;
+            }
+            return acc;
+        }, {});
+
+        const customer = new Customer({
+            ...customerData,
+            userId: decoded.userId
+        });
+
+        await customer.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'Customer added successfully',
+            customer: {
+                id: customer._id,
+                name: customer.name,
+                email: customer.email,
+                phone1: customer.phone1
+            }
+        });
+    } catch (error) {
+        console.error('Customer creation error:', error);
+        res.status(400).json({ 
+            success: false,
+            message: error.name === 'ValidationError' 
+                ? 'Invalid customer data' 
+                : 'Failed to add customer',
+            error: error.message 
+        });
+    }
+});
+
+// Get customers list
+app.get('/api/v1/user/customers', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const customers = await Customer.find({ userId: decoded.userId });
+        
+        res.json({
+            success: true,
+            customers: customers
+        });
+    } catch (error) {
+        console.error('Customers fetch error:', error);
+        res.status(400).json({ message: 'Failed to fetch customers' });
     }
 });
